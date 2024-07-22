@@ -104,7 +104,7 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 		message: string,
 		owner: Pick<IUser, '_id' | 'username' | 'name'>,
 		extraData?: Partial<T>,
-	): Promise<IMessage['_id']> {
+	): Promise<IMessage> {
 		const { _id: userId, username, name } = owner;
 		if (!username) {
 			throw new Error('The username cannot be empty.');
@@ -122,10 +122,15 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 			Rooms.incMsgCountById(rid, 1),
 		]);
 
+		const createdMessage = await Messages.findOneById(result.insertedId);
+		if (!createdMessage) {
+			throw new Error('Message not found');
+		}
+
 		void broadcastMessageFromData({ id: result.insertedId });
 		void notifyOnRoomChangedById(rid);
 
-		return result.insertedId;
+		return createdMessage;
 	}
 
 	async beforeSave({

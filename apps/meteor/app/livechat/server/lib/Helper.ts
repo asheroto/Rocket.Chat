@@ -139,9 +139,10 @@ export const createLivechatRoom = async <
 		throw new Error('Room not created');
 	}
 
-	await callbacks.run('livechat.newRoom', room);
+	const message = await Message.saveSystemMessage('livechat-started', rid, '', { _id, username }, { groupable: false });
 
-	await Message.saveSystemMessage('livechat-started', rid, '', { _id, username }, { groupable: false });
+	await callbacks.run('livechat.newRoom', room);
+	await callbacks.run('afterSaveMessage', message, room);
 
 	return result.value as IOmnichannelRoom;
 };
