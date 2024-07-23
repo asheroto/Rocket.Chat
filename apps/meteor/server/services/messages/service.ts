@@ -105,6 +105,7 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 		message: string,
 		owner: Pick<IUser, '_id' | 'username' | 'name'>,
 		extraData?: Partial<T>,
+		shouldNotifyUsersOnMessage = true,
 	): Promise<IMessage> {
 		const { _id: userId, username, name } = owner;
 		if (!username) {
@@ -133,7 +134,9 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 			throw new Error('Could not find room');
 		}
 
-		void notifyUsersOnMessage(messageData, room);
+		if (shouldNotifyUsersOnMessage) {
+			void notifyUsersOnMessage(messageData, room);
+		}
 		void broadcastMessageFromData({ id: messageData._id });
 		void notifyOnRoomChanged(room);
 
