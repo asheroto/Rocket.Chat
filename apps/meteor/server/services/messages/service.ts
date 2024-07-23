@@ -6,7 +6,8 @@ import { Messages, Rooms } from '@rocket.chat/models';
 import { deleteMessage } from '../../../app/lib/server/functions/deleteMessage';
 import { sendMessage } from '../../../app/lib/server/functions/sendMessage';
 import { updateMessage } from '../../../app/lib/server/functions/updateMessage';
-import { notifyOnRoomChangedById } from '../../../app/lib/server/lib/notifyListener';
+import { notifyOnRoomChanged } from '../../../app/lib/server/lib/notifyListener';
+import { notifyUsersOnMessage } from '../../../app/lib/server/lib/notifyUsersOnMessage';
 import { executeSendMessage } from '../../../app/lib/server/methods/sendMessage';
 import { executeSetReaction } from '../../../app/reactions/server/setReaction';
 import { settings } from '../../../app/settings/server';
@@ -110,7 +111,7 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 			throw new Error('The username cannot be empty.');
 		}
 
-		const [result] = await Promise.all([
+		const [createdMessage, room] = await Promise.all([
 			Messages.createWithTypeRoomIdMessageUserAndUnread(
 				type,
 				rid,
@@ -119,18 +120,24 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 				settings.get('Message_Read_Receipt_Enabled'),
 				extraData,
 			),
-			Rooms.incMsgCountById(rid, 1),
+			Rooms.findOneById(rid),
 		]);
 
-		const createdMessage = await Messages.findOneById(result.insertedId);
-		if (!createdMessage) {
-			throw new Error('Message not found');
+		if (!createdMessage?.value) {
+			throw new Error('Could not create message');
 		}
 
-		void broadcastMessageFromData({ id: result.insertedId });
-		void notifyOnRoomChangedById(rid);
+		const messageData = createdMessage.value;
 
-		return createdMessage;
+		if (!room) {
+			throw new Error('Could not find room');
+		}
+
+		void notifyUsersOnMessage(messageData, room);
+		void broadcastMessageFromData({ id: messageData._id });
+		void notifyOnRoomChanged(room);
+
+		return messageData;
 	}
 
 	async beforeSave({
@@ -174,9 +181,9 @@ export class MessageService extends ServiceClassInternal implements IMessageServ
 	private getMarkdownConfig() {
 		const customDomains = settings.get<string>('Message_CustomDomain_AutoLink')
 			? settings
-					.get<string>('Message_CustomDomain_AutoLink')
-					.split(',')
-					.map((domain) => domain.trim())
+				.get<string>('Message_CustomDomain_AutoLink')
+				.split(',')
+				.map((domain) => domain.trim())
 			: [];
 
 		return {

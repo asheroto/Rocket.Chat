@@ -1408,8 +1408,7 @@ class LivechatClass {
 			},
 		};
 
-		const message = await Message.saveSystemMessage('livechat_transfer_history', room._id, '', { _id, username }, transferMessage);
-		await callbacks.run('afterSaveMessage', message, room);
+		await Message.saveSystemMessage('livechat_transfer_history', room._id, '', { _id, username }, transferMessage);
 	}
 
 	async saveGuest(guestData: Pick<ILivechatVisitor, '_id' | 'name' | 'livechatData'> & { email?: string; phone?: string }, userId: string) {
