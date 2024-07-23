@@ -135,7 +135,7 @@ Meteor.methods<ServerMethods>({
 
 		const pinMessageType = originalMessage.t === 'e2e' ? 'message_pinned_e2e' : 'message_pinned';
 
-		const msgId = await Message.saveSystemMessage(pinMessageType, originalMessage.rid, '', me, {
+		return Message.saveSystemMessage(pinMessageType, originalMessage.rid, '', me, {
 			attachments: [
 				{
 					text: originalMessage.msg,
@@ -146,8 +146,6 @@ Meteor.methods<ServerMethods>({
 				},
 			],
 		});
-
-		return Messages.findOneById(msgId);
 	},
 	async unpinMessage(message) {
 		check(message._id, String);
