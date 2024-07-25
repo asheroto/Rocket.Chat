@@ -10,30 +10,9 @@ const SAMLLoginRoute = () => {
 
 	useEffect(() => {
 		const { token } = router.getRouteParameters();
-		const { redirectUrl } = router.getSearchParameters();
-
 		Meteor.loginWithSamlToken(token, (error?: unknown) => {
 			if (error) {
 				dispatchToastMessage({ type: 'error', message: error });
-			}
-
-			const decodedRedirectUrl = decodeURIComponent(redirectUrl || '');
-			if (decodedRedirectUrl?.startsWith(rootUrl)) {
-				const redirect = new URL(decodedRedirectUrl);
-				router.navigate(
-					{
-						pathname: redirect.pathname as LocationPathname,
-						search: Object.fromEntries(redirect.searchParams.entries()),
-					},
-					{ replace: true },
-				);
-			} else {
-				router.navigate(
-					{
-						pathname: '/home',
-					},
-					{ replace: true },
-				);
 			}
 		});
 	}, [dispatchToastMessage, rootUrl, router]);
@@ -43,14 +22,27 @@ const SAMLLoginRoute = () => {
 		if (!userId) {
 			return;
 		}
+		const { redirectUrl } = router.getSearchParameters();
 
-		router.navigate(
-			{
-				pathname: '/home',
-			},
-			{ replace: true },
-		);
-	}, [userId, router]);
+		const decodedRedirectUrl = decodeURIComponent(redirectUrl || '');
+		if (decodedRedirectUrl?.startsWith(rootUrl)) {
+			const redirect = new URL(decodedRedirectUrl);
+			router.navigate(
+				{
+					pathname: redirect.pathname as LocationPathname,
+					search: Object.fromEntries(redirect.searchParams.entries()),
+				},
+				{ replace: true },
+			);
+		} else {
+			router.navigate(
+				{
+					pathname: '/home',
+				},
+				{ replace: true },
+			);
+		}
+	}, [userId, router, rootUrl]);
 
 	return null;
 };
